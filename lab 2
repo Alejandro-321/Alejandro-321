@@ -1,0 +1,52 @@
+#include <stdio.h>
+
+void resta(int, int, int*);
+
+int main() {
+    int n1, n2;
+
+    
+    printf("Introduce el divisor: ");
+    scanf("%d", &n1);
+    printf("Introduce el denominador: ");
+    scanf("%d", &n2);
+
+    if (n2 == 0) {
+        printf("Introduzca un numero distinto de cero\n");
+        return 1;
+    }
+
+    
+    int negativo = 0;
+    if ((n1 < 0) != (n2 < 0)) {
+        negativo = 1;  
+    }
+
+    
+    n1 = (n1 < 0) ? -n1 : n1;
+    n2 = (n2 < 0) ? -n2 : n2;
+
+    int resultado = 0;
+
+    
+    resta(n1, n2, &resultado);
+
+    
+    if (negativo) {
+        resultado = -resultado;
+    }
+
+    
+    printf("Resultado: %d\n", resultado);
+
+    return 0;
+}
+
+void resta(int n1, int n2, int* p3) {
+    int count = 0;
+    while (n1 >= n2) {
+        n1 -= n2;
+        count++;
+    }
+    *p3 = count;
+}
