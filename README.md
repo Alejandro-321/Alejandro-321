@@ -1,39 +1,53 @@
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#define TAM 100
-int leer();
+void resta(int, int, int*);
 
-void main(){
+int main() {
+    int n1, n2;
 
-    int numero;
-
-    printf("Tu numero es palindromo?\n");
-    printf("Ingrese su numero: ");
-    scanf("%d", &numero);
-    leer(numero);
     
-    if(leer(numero)){
-        printf("%d es palindromo", numero);
-    }
-    else{
-                printf("%d no es palindromo", numero);
+    printf("Introduce el divisor: ");
+    scanf("%d", &n1);
+    printf("Introduce el denominador: ");
+    scanf("%d", &n2);
+
+    if (n2 == 0) {
+        printf("Introduzca un numero distinto de cero\n");
+        return 1;
     }
 
+    
+    int negativo = 0;
+    if ((n1 < 0) != (n2 < 0)) {
+        negativo = 1;  
+    }
+
+    
+    n1 = (n1 < 0) ? -n1 : n1;
+    n2 = (n2 < 0) ? -n2 : n2;
+
+    int resultado = 0;
+
+    
+    resta(n1, n2, &resultado);
+
+    
+    if (negativo) {
+        resultado = -resultado;
+    }
+
+    
+    printf("Resultado: %d\n", resultado);
+
+    return 0;
 }
 
-int leer(int numero){
-
-    int original = numero;
-    int reverso =0;
-    
-    while (numero>0)
-    {
-        int digito =    numero % 10;
-        reverso =reverso*10+digito;
-        numero =numero/10;
-        
+void resta(int n1, int n2, int* p3) {
+    int count = 0;
+    while (n1 >= n2) {
+        n1 -= n2;
+        count++;
     }
-    return original==reverso;
+    *p3 = count;
 }
