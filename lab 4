@@ -1,1 +1,65 @@
-Vera Marin Alejandro 4CV2
+#include <stdio.h>
+#include <stdlib.h>
+
+int comparar(const void *a, const void *b) {
+    return (*(int *)a - *(int *)b);
+}
+
+int calcularQuimica(int skill[], int n) {
+   
+    qsort(skill, n, sizeof(int), comparar);
+
+    int sumaObjetivo = skill[0] + skill[n - 1];
+    int quimicaTotal = 0;
+
+  
+    for (int i = 0; i < n / 2; i++) {
+        int sumaEquipo = skill[i] + skill[n - 1 - i];
+        if (sumaEquipo != sumaObjetivo) {
+            return -1;  
+        }
+        quimicaTotal += skill[i] * skill[n - 1 - i];
+    }
+
+    return quimicaTotal;
+}
+
+int main() {
+    int n;
+
+    printf("Ingrese la cantidad de jugadores (número par): ");
+    if (scanf("%d", &n) != 1 || n <= 0) {
+        printf("Entrada inválida.\n");
+        return 1;
+    }
+    if (n % 2 != 0) {
+        printf("La cantidad de jugadores debe ser un número par.\n");
+        return 1;
+    }
+
+    int *skill = (int *)malloc(n * sizeof(int));
+    if (skill == NULL) {
+        printf("Error al asignar memoria.\n");
+        return 1;
+    }
+
+    printf("Ingrese las habilidades de cada jugador:\n");
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d", &skill[i]) != 1) {
+            printf("Entrada inválida.\n");
+            free(skill);
+            return 1;
+        }
+    }
+
+    int resultado = calcularQuimica(skill, n);
+    if (resultado == -1) {
+        printf("No es posible formar equipos con la misma suma de habilidades.\n");
+    } else {
+        printf("La química total es: %d\n", resultado);
+    }
+
+    free(skill);
+    return 0;
+}
+por si quieres lo de ada
