@@ -1,3 +1,234 @@
-Nombre:Alejandro Vera Marin
-Grupo 3CV2
-lab 5 divide y vencerás 
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
+
+typedef struct {
+    int **data;
+    int size;
+} Matrix;
+
+Matrix create_matrix(int n);
+void free_matrix(Matrix mat);
+void input_matrix(Matrix mat, char name);
+void print_matrix(Matrix mat, char name[]);
+Matrix traditional_multiply(Matrix A, Matrix B);
+Matrix add_matrix(Matrix A, Matrix B);
+Matrix subtract_matrix(Matrix A, Matrix B);
+Matrix dac_multiply(Matrix A, Matrix B);
+Matrix strassen_multiply(Matrix A, Matrix B);
+void split_matrix(Matrix parent, Matrix *child, int quadrant);
+Matrix combine_matrices(Matrix c11, Matrix c12, Matrix c21, Matrix c22);
+
+Matrix create_matrix(int n) {
+    Matrix mat;
+    mat.size = n;
+    mat.data = (int **)malloc(n * sizeof(int *));
+    for (int i = 0; i < n; i++) {
+        mat.data[i] = (int *)malloc(n * sizeof(int));
+    }
+    return mat;
+}
+
+void free_matrix(Matrix mat) {
+    for (int i = 0; i < mat.size; i++) {
+        free(mat.data[i]);
+    }
+    free(mat.data);
+}
+
+void input_matrix(Matrix mat, char name) {
+    printf("Ingrese la matriz %c (%dx%d):\n", name, mat.size, mat.size);
+    for (int i = 0; i < mat.size; i++) {
+        for (int j = 0; j < mat.size; j++) {
+            printf("%c[%d][%d]: ", name, i, j);
+            scanf("%d", &mat.data[i][j]);
+        }
+    }
+}
+
+void print_matrix(Matrix mat, char name[]) {
+    printf("Matriz %s (%dx%d):\n", name, mat.size, mat.size);
+    for (int i = 0; i < mat.size; i++) {
+        for (int j = 0; j < mat.size; j++) {
+            printf("%4d ", mat.data[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+Matrix traditional_multiply(Matrix A, Matrix B) {
+    int n = A.size;
+    Matrix result = create_matrix(n);
+    
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            result.data[i][j] = 0;
+            for (int k = 0; k < n; k++) {
+                result.data[i][j] += A.data[i][k] * B.data[k][j];
+            }
+        }
+    }
+    return result;
+}
+
+Matrix add_matrix(Matrix A, Matrix B) {
+    int n = A.size;
+    Matrix result = create_matrix(n);
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+            result.data[i][j] = A.data[i][j] + B.data[i][j];
+    return result;
+}
+
+Matrix subtract_matrix(Matrix A, Matrix B) {
+    int n = A.size;
+    Matrix result = create_matrix(n);
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+            result.data[i][j] = A.data[i][j] - B.data[i][j];
+    return result;
+}
+
+Matrix dac_multiply(Matrix A, Matrix B) {
+    int n = A.size;
+    Matrix result = create_matrix(n);
+    if (n == 1) {
+        result.data[0][0] = A.data[0][0] * B.data[0][0];
+        return result;
+    }
+    int new_size = n / 2;
+    Matrix a11 = create_matrix(new_size);
+    Matrix a12 = create_matrix(new_size);
+    Matrix a21 = create_matrix(new_size);
+    Matrix a22 = create_matrix(new_size);
+    Matrix b11 = create_matrix(new_size);
+    Matrix b12 = create_matrix(new_size);
+    Matrix b21 = create_matrix(new_size);
+    Matrix b22 = create_matrix(new_size);
+
+    split_matrix(A, &a11, 0); split_matrix(A, &a12, 1);
+    split_matrix(A, &a21, 2); split_matrix(A, &a22, 3);
+    split_matrix(B, &b11, 0); split_matrix(B, &b12, 1);
+    split_matrix(B, &b21, 2); split_matrix(B, &b22, 3);
+
+    Matrix c11 = add_matrix(dac_multiply(a11, b11), dac_multiply(a12, b21));
+    Matrix c12 = add_matrix(dac_multiply(a11, b12), dac_multiply(a12, b22));
+    Matrix c21 = add_matrix(dac_multiply(a21, b11), dac_multiply(a22, b21));
+    Matrix c22 = add_matrix(dac_multiply(a21, b12), dac_multiply(a22, b22));
+
+    result = combine_matrices(c11, c12, c21, c22);
+
+    free_matrix(a11); free_matrix(a12); free_matrix(a21); free_matrix(a22);
+    free_matrix(b11); free_matrix(b12); free_matrix(b21); free_matrix(b22);
+    free_matrix(c11); free_matrix(c12); free_matrix(c21); free_matrix(c22);
+
+    return result;
+}
+
+Matrix strassen_multiply(Matrix A, Matrix B) {
+    int n = A.size;
+    Matrix result = create_matrix(n);
+    if (n == 1) {
+        result.data[0][0] = A.data[0][0] * B.data[0][0];
+        return result;
+    }
+    int new_size = n / 2;
+    Matrix a11 = create_matrix(new_size);
+    Matrix a12 = create_matrix(new_size);
+    Matrix a21 = create_matrix(new_size);
+    Matrix a22 = create_matrix(new_size);
+    Matrix b11 = create_matrix(new_size);
+    Matrix b12 = create_matrix(new_size);
+    Matrix b21 = create_matrix(new_size);
+    Matrix b22 = create_matrix(new_size);
+
+    split_matrix(A, &a11, 0); split_matrix(A, &a12, 1);
+    split_matrix(A, &a21, 2); split_matrix(A, &a22, 3);
+    split_matrix(B, &b11, 0); split_matrix(B, &b12, 1);
+    split_matrix(B, &b21, 2); split_matrix(B, &b22, 3);
+
+    Matrix p1 = strassen_multiply(a11, subtract_matrix(b12, b22));
+    Matrix p2 = strassen_multiply(add_matrix(a11, a12), b22);
+    Matrix p3 = strassen_multiply(add_matrix(a21, a22), b11);
+    Matrix p4 = strassen_multiply(a22, subtract_matrix(b21, b11));
+    Matrix p5 = strassen_multiply(add_matrix(a11, a22), add_matrix(b11, b22));
+    Matrix p6 = strassen_multiply(subtract_matrix(a12, a22), add_matrix(b21, b22));
+    Matrix p7 = strassen_multiply(subtract_matrix(a11, a21), add_matrix(b11, b12));
+
+    Matrix temp1 = add_matrix(p5, p4);
+    Matrix temp2 = subtract_matrix(temp1, p2);
+    Matrix c11 = add_matrix(temp2, p6);
+
+    Matrix c12 = add_matrix(p1, p2);
+    Matrix c21 = add_matrix(p3, p4);
+
+    Matrix temp3 = add_matrix(p3, p7);
+    Matrix temp4 = add_matrix(temp3, p6);
+    Matrix temp5 = add_matrix(p5, p1);
+    Matrix c22 = subtract_matrix(temp5, temp4);
+
+    result = combine_matrices(c11, c12, c21, c22);
+
+    free_matrix(a11); free_matrix(a12); free_matrix(a21); free_matrix(a22);
+    free_matrix(b11); free_matrix(b12); free_matrix(b21); free_matrix(b22);
+    free_matrix(p1); free_matrix(p2); free_matrix(p3); free_matrix(p4);
+    free_matrix(p5); free_matrix(p6); free_matrix(p7);
+    free_matrix(temp1); free_matrix(temp2); free_matrix(temp3);
+    free_matrix(temp4); free_matrix(temp5);
+    free_matrix(c11); free_matrix(c12); free_matrix(c21); free_matrix(c22);
+
+    return result;
+}
+
+void split_matrix(Matrix parent, Matrix *child, int quadrant) {
+    int half = parent.size / 2;
+    int row_start = (quadrant / 2) * half;
+    int col_start = (quadrant % 2) * half;
+    for (int i = 0; i < half; i++)
+        for (int j = 0; j < half; j++)
+            child->data[i][j] = parent.data[row_start + i][col_start + j];
+}
+
+Matrix combine_matrices(Matrix c11, Matrix c12, Matrix c21, Matrix c22) {
+    int n = c11.size * 2;
+    Matrix result = create_matrix(n);
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++) {
+            if (i < c11.size && j < c11.size)
+                result.data[i][j] = c11.data[i][j];
+            else if (i < c11.size)
+                result.data[i][j] = c12.data[i][j - c11.size];
+            else if (j < c11.size)
+                result.data[i][j] = c21.data[i - c11.size][j];
+            else
+                result.data[i][j] = c22.data[i - c11.size][j - c11.size];
+        }
+    return result;
+}
+
+int main() {
+    int n;
+    printf("Ingrese el tamaño de la matriz (potencia de 2, ej: 2, 4, 8...): ");
+    scanf("%d", &n);
+
+    Matrix A = create_matrix(n);
+    Matrix B = create_matrix(n);
+
+    input_matrix(A, 'A');
+    input_matrix(B, 'B');
+
+    Matrix C1 = traditional_multiply(A, B);
+    Matrix C2 = dac_multiply(A, B);
+    Matrix C3 = strassen_multiply(A, B);
+
+    print_matrix(C1, "Tradicional");
+    print_matrix(C2, "Divide y Venceras");
+    print_matrix(C3, "Strassen");
+
+    free_matrix(A); free_matrix(B);
+    free_matrix(C1); free_matrix(C2); free_matrix(C3);
+
+    return 0;
+}
+
