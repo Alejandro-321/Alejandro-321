@@ -1,3 +1,68 @@
-Lab 6
-Alejandro Vera Marin
-Grupo: 4CV2
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX 1000  
+
+
+bool esPrimo(int n) {
+    if (n < 2) return false;
+    for (int i = 2; i * i <= n; i++)
+        if (n % i == 0)
+            return false;
+    return true;
+}
+
+
+int generarFibonacciFiltrado(int fib[], int K) {
+    fib[0] = 0;
+    fib[1] = 1;
+    int tam = 2;    
+    int pos = 2;    
+
+    while (1) {
+        int siguiente = fib[tam-1] + fib[tam-2];
+        if (siguiente > K) break;
+        pos++;
+        if (!esPrimo(pos)) {
+            fib[tam++] = siguiente;
+        }
+    }
+    return tam;
+}
+
+int contarTerminosMinimos(int fib[], int tam, int K) {
+    int cont = 0;
+    for (int i = tam - 1; i >= 0 && K > 0; i--) {
+        if (fib[i] <= K) {
+            K -= fib[i];
+            cont++;
+        }
+    }
+    return cont;
+}
+
+int main(void) {
+    int dia, mes, anio;
+
+   
+    printf("Introduce tu día de nacimiento (1–31): ");
+    if (scanf("%d", &dia) != 1) return 1;
+    printf("Introduce tu mes de nacimiento (1–12): ");
+    if (scanf("%d", &mes) != 1) return 1;
+    printf("Introduce tu año de nacimiento (por ejemplo 1995): ");
+    if (scanf("%d", &anio) != 1) return 1;
+
+ 
+    int K = dia * 100 + mes * 10 + (anio % 100);
+    printf("Valor de K calculado = %d\n", K);
+
+   
+    int fib[MAX];
+    int tam = generarFibonacciFiltrado(fib, K);
+
+   
+    int resultado = contarTerminosMinimos(fib, tam, K);
+    printf("Mínimo número de términos de Fibonacci distintos = %d\n", resultado);
+
+    return 0;
+}
