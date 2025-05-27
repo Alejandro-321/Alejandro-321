@@ -1,0 +1,232 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+typedef struct NodoHuffman {
+    unsigned char caracter;
+    unsigned frecuencia;
+    struct NodoHuffman *izq, *der;
+} NodoHuffman;
+
+typedef struct ListaNodos {
+    NodoHuffman *nodo;
+    struct ListaNodos *sig;
+} ListaNodos;
+
+// Prototipos de funciones
+void contar_frecuencias(const char *nombre_archivo, unsigned frecuencias[]);
+ListaNodos* crear_lista_nodos(unsigned frecuencias[]);
+NodoHuffman* construir_arbol(ListaNodos **lista);
+void generar_codigos(NodoHuffman *raiz, char *codigos[], char *buffer, int depth);
+void comprimir_archivo(const char *nombre_original, const char *nombre_codificado, char *codigos[]);
+size_t calcular_tamano_original(unsigned frecuencias[]);
+size_t calcular_tamano_codificado(unsigned frecuencias[], char *codigos[]);
+void decodificar_archivo(const char *nombre_codificado, NodoHuffman *raiz);
+void liberar_arbol(NodoHuffman *raiz);
+char* mystrdup(const char *s);
+
+int main() {
+    unsigned frecuencias[256] = {0};
+    contar_frecuencias("entrada.txt", frecuencias);
+
+    ListaNodos *lista = crear_lista_nodos(frecuencias);
+    if (lista == NULL) {
+        fprintf(stderr, "El archivo está vacío\n");
+        exit(1);
+    }
+    NodoHuffman *raiz = construir_arbol(&lista);
+
+    char *codigos[256] = {NULL};
+    char buffer[256] = {0};
+    generar_codigos(raiz, codigos, buffer, 0);
+
+    comprimir_archivo("entrada.txt", "codificado.txt", codigos);
+
+    size_t tam_original = calcular_tamano_original(frecuencias);
+    size_t tam_codificado = calcular_tamano_codificado(frecuencias, codigos);
+    printf("Tamaño original: %zu bits\n", tam_original);
+    printf("Tamaño codificado: %zu bits\n", tam_codificado);
+    printf("Tasa de compresión: %.2f%%\n", (float)tam_codificado / tam_original * 100);
+
+    decodificar_archivo("codificado.txt", raiz);
+
+    liberar_arbol(raiz);
+    for (int i = 0; i < 256; i++) {
+        free(codigos[i]);
+    }
+
+    return 0;
+}
+
+// Implementación de strdup para portabilidad
+char* mystrdup(const char *s) {
+    char *d = malloc(strlen(s) + 1);
+    if (d) strcpy(d, s);
+    return d;
+}
+
+void contar_frecuencias(const char *nombre_archivo, unsigned frecuencias[]) {
+    FILE *archivo = fopen(nombre_archivo, "rb");
+    if (!archivo) {
+        perror("Error al abrir el archivo");
+        exit(1);
+    }
+    int c;
+    while ((c = fgetc(archivo)) != EOF) {
+        frecuencias[(unsigned char)c]++;
+    }
+    fclose(archivo);
+}
+
+ListaNodos* crear_lista_nodos(unsigned frecuencias[]) {
+    ListaNodos *lista = NULL;
+    for (int i = 0; i < 256; i++) {
+        if (frecuencias[i] > 0) {
+            NodoHuffman *nodo = malloc(sizeof(NodoHuffman));
+            nodo->caracter = (unsigned char)i;
+            nodo->frecuencia = frecuencias[i];
+            nodo->izq = nodo->der = NULL;
+
+            ListaNodos *nuevo = malloc(sizeof(ListaNodos));
+            nuevo->nodo = nodo;
+            nuevo->sig = NULL;
+
+            // Insertar en orden ascendente
+            if (lista == NULL || nodo->frecuencia < lista->nodo->frecuencia) {
+                nuevo->sig = lista;
+                lista = nuevo;
+            } else {
+                ListaNodos *actual = lista;
+                while (actual->sig != NULL && actual->sig->nodo->frecuencia < nodo->frecuencia) {
+                    actual = actual->sig;
+                }
+                nuevo->sig = actual->sig;
+                actual->sig = nuevo;
+            }
+        }
+    }
+    return lista;
+}
+
+NodoHuffman* construir_arbol(ListaNodos **lista) {
+    while ((*lista)->sig != NULL) {
+        // Extraer dos nodos de menor frecuencia
+        NodoHuffman *izq = (*lista)->nodo;
+        ListaNodos *temp = *lista;
+        *lista = (*lista)->sig;
+        free(temp);
+
+        NodoHuffman *der = (*lista)->nodo;
+        temp = *lista;
+        *lista = (*lista)->sig;
+        free(temp);
+
+        // Crear nuevo nodo interno
+        NodoHuffman *interno = malloc(sizeof(NodoHuffman));
+        interno->caracter = '\0';
+        interno->frecuencia = izq->frecuencia + der->frecuencia;
+        interno->izq = izq;
+        interno->der = der;
+
+        // Insertar nuevo nodo en la lista
+        ListaNodos *nuevo = malloc(sizeof(ListaNodos));
+        nuevo->nodo = interno;
+        nuevo->sig = NULL;
+
+        if (*lista == NULL || interno->frecuencia < (*lista)->nodo->frecuencia) {
+            nuevo->sig = *lista;
+            *lista = nuevo;
+        } else {
+            ListaNodos *actual = *lista;
+            while (actual->sig != NULL && actual->sig->nodo->frecuencia < interno->frecuencia) {
+                actual = actual->sig;
+            }
+            nuevo->sig = actual->sig;
+            actual->sig = nuevo;
+        }
+    }
+    return (*lista)->nodo;
+}
+
+void generar_codigos(NodoHuffman *raiz, char *codigos[], char *buffer, int depth) {
+    if (raiz->izq == NULL && raiz->der == NULL) {
+        buffer[depth] = '\0';
+        codigos[raiz->caracter] = mystrdup(buffer);
+        return;
+    }
+    if (raiz->izq != NULL) {
+        buffer[depth] = '0';
+        generar_codigos(raiz->izq, codigos, buffer, depth + 1);
+    }
+    if (raiz->der != NULL) {
+        buffer[depth] = '1';
+        generar_codigos(raiz->der, codigos, buffer, depth + 1);
+    }
+}
+
+void comprimir_archivo(const char *nombre_original, const char *nombre_codificado, char *codigos[]) {
+    FILE *entrada = fopen(nombre_original, "rb");
+    FILE *salida = fopen(nombre_codificado, "wb");
+    if (!entrada || !salida) {
+        perror("Error al abrir archivos");
+        exit(1);
+    }
+
+    int c;
+    while ((c = fgetc(entrada)) != EOF) {
+        fprintf(salida, "%s", codigos[(unsigned char)c]);
+    }
+
+    fclose(entrada);
+    fclose(salida);
+}
+
+size_t calcular_tamano_original(unsigned frecuencias[]) {
+    size_t total = 0;
+    for (int i = 0; i < 256; i++) {
+        total += frecuencias[i];
+    }
+    return total * 8;
+}
+
+size_t calcular_tamano_codificado(unsigned frecuencias[], char *codigos[]) {
+    size_t total = 0;
+    for (int i = 0; i < 256; i++) {
+        if (frecuencias[i] > 0 && codigos[i] != NULL) {
+            total += frecuencias[i] * strlen(codigos[i]);
+        }
+    }
+    return total;
+}
+
+void decodificar_archivo(const char *nombre_codificado, NodoHuffman *raiz) {
+    FILE *codificado = fopen(nombre_codificado, "rb");
+    FILE *decodificado = fopen("decodificado.txt", "wb");
+    if (!codificado || !decodificado) {
+        perror("Error al abrir archivos");
+        exit(1);
+    }
+
+    NodoHuffman *actual = raiz;
+    int bit;
+    while ((bit = fgetc(codificado)) != EOF) {
+        actual = (bit == '0') ? actual->izq : actual->der;
+        
+        if (actual->izq == NULL && actual->der == NULL) {
+            fputc(actual->caracter, decodificado);
+            actual = raiz;
+        }
+    }
+
+    fclose(codificado);
+    fclose(decodificado);
+}
+
+void liberar_arbol(NodoHuffman *raiz) {
+    if (raiz != NULL) {
+        liberar_arbol(raiz->izq);
+        liberar_arbol(raiz->der);
+        free(raiz);
+    }
+}
