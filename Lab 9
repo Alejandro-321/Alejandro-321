@@ -1,0 +1,77 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+void generarTerreno(int terreno[], int tamaño);
+int calcularAgua(int terreno[], int tamaño);
+
+int main() {
+    srand(time(NULL));
+
+    int tamaño;
+    printf("¿Qué tan largo quieres el terreno?: ");
+    scanf("%d", &tamaño);
+
+    int terreno[tamaño];
+    generarTerreno(terreno, tamaño);
+
+    printf("Terreno generado: ");
+    for (int i = 0; i < tamaño; i++) {
+        printf("%d ", terreno[i]);
+    }
+    printf("\n");
+
+    int agua = calcularAgua(terreno, tamaño);
+    printf("El total de agua atrapada es: %d\n", agua);
+
+    return 0;
+}
+
+void generarTerreno(int terreno[], int tamaño) {
+    for (int i = 0; i < tamaño; i++) {
+        terreno[i] = rand() % 10; // alturas del 0 al 9
+    }
+}
+
+int calcularAgua(int terreno[], int tamaño) {
+    int agua = 0;
+    int pos = 0;
+
+    while (pos < tamaño - 1) {
+        int alturaActual = terreno[pos];
+        int alturaBuscar = alturaActual;
+        int siguienteMuro = -1;
+
+        while (alturaBuscar > 0) {
+            siguienteMuro = -1;
+            for (int j = pos + 1; j < tamaño; j++) {
+                if (terreno[j] >= alturaBuscar) {
+                    siguienteMuro = j;
+                    break;
+                }
+            }
+            if (siguienteMuro != -1) break;
+            alturaBuscar--;
+        }
+
+        if (siguienteMuro != -1) {
+            int bloques = 0;
+            for (int k = pos + 1; k < siguienteMuro; k++) {
+                bloques += terreno[k];
+            }
+
+            int espacios = siguienteMuro - pos - 1;
+            int aguaEntre = (alturaBuscar * espacios) - bloques;
+
+            if (aguaEntre > 0) {
+                agua += aguaEntre;
+            }
+
+            pos = siguienteMuro;
+        } else {
+            pos++;
+        }
+    }
+
+    return agua;
+}
