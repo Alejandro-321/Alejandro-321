@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MAX_ITEMS 10
+
+typedef struct {
+    char name[20];
+    int weight;
+    int value;
+} Item;
+
+void printSelectedItems(int capacity, Item items[], int numItems, int dp[numItems+1][capacity+1]) {
+    int i = numItems;
+    int w = capacity;
+    
+    printf("\nObjetos seleccionados: ");
+    
+    while (i > 0 && w > 0) {
+        if (dp[i][w] != dp[i-1][w]) {
+            printf("%s ", items[i-1].name);
+            w -= items[i-1].weight;
+        }
+        i--;
+    }
+    printf("\n");
+}
+
+int knapsack(int capacity, Item items[], int numItems) {
+    // Crear tabla DP
+    int dp[numItems+1][capacity+1];
+    
+    // Inicializar tabla
+    for (int i = 0; i <= numItems; i++) {
+        for (int w = 0; w <= capacity; w++) {
+            if (i == 0 || w == 0) {
+                dp[i][w] = 0;
+            } else if (items[i-1].weight <= w) {
+                dp[i][w] = MAX(items[i-1].value + dp[i-1][w-items[i-1].weight], dp[i-1][w]);
+            } else {
+                dp[i][w] = dp[i-1][w];
+            }
+        }
+    }
+    
+    // Mostrar items seleccionados
+    printSelectedItems(capacity, items, numItems, dp);
+    
+    return dp[numItems][capacity];
+}
+
+int main() {
+    Item items[MAX_ITEMS];
+    int numItems = 0;
+    int capacity;
+    
+    printf("=== Resolvedor del Problema de la Mochila ===\n");
+    
+    // Ingresar capacidad de la mochila
+    printf("\nIngrese la capacidad de la mochila (en lbs): ");
+    scanf("%d", &capacity);
+    
+    // Ingresar número de items
+    printf("Ingrese el numero de items (max %d): ", MAX_ITEMS);
+    scanf("%d", &numItems);
+    
+    if (numItems <= 0 || numItems > MAX_ITEMS) {
+        printf("Numero de items invalido!\n");
+        return 1;
+    }
+    
+    // Ingresar datos de cada item
+    printf("\nIngrese los datos de cada item:\n");
+    for (int i = 0; i < numItems; i++) {
+        printf("\nItem %d:\n", i+1);
+        printf("  Nombre: ");
+        scanf("%s", items[i].name);
+        printf("  Peso (lbs): ");
+        scanf("%d", &items[i].weight);
+        printf("  Valor ($): ");
+        scanf("%d", &items[i].value);
+    }
+    
+    // Mostrar resumen
+    printf("\nResumen de entrada:\n");
+    printf("Capacidad de la mochila: %d lbs\n", capacity);
+    printf("Objetos disponibles:\n");
+    for (int i = 0; i < numItems; i++) {
+        printf("- %s: Peso %d lbs, Valor $%d\n", items[i].name, items[i].weight, items[i].value);
+    }
+    
+    // Resolver el problema
+    int maxValue = knapsack(capacity, items, numItems);
+    printf("\nValor máximo que se puede llevar: $%d\n", maxValue);
+    
+    return 0;
+}
